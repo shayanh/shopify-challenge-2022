@@ -21,9 +21,12 @@ func fillInitialData(db *gorm.DB) error {
 	}
 
 	items := []*models.Item{
-		{Name: "Pencil", InventoryID: invs[0].ID},
-		{Name: "Bag", InventoryID: invs[0].ID},
-		{Name: "Anti Virus", InventoryID: invs[1].ID},
+		{Name: "Pencil", InventoryID: invs[0].ID,
+			Description: "Black writing pencil for school days."},
+		{Name: "Bag", InventoryID: invs[0].ID,
+			Description: "Medium sized school bag."},
+		{Name: "Anti Virus", InventoryID: invs[1].ID,
+			Description: "Strong protection for your machine."},
 	}
 	itemRepo := models.ItemRepository{
 		DB: db,

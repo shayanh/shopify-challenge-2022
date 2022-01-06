@@ -2,7 +2,10 @@ package main
 
 import (
 	"log"
+	"net/http"
 
+	"github.com/gorilla/mux"
+	"github.com/shayanh/shopify-challenge-2022/handlers"
 	"github.com/shayanh/shopify-challenge-2022/models"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -20,5 +23,21 @@ func main() {
 	}
 
 	err = fillInitialData(db)
-	log.Println(err)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	router := mux.NewRouter()
+	router.StrictSlash(true)
+
+	itemRepo := &models.ItemRepository{
+		DB: db,
+	}
+	itemHandler := handlers.NewItemHandler(itemRepo)
+	itemHandler.Handle(router.PathPrefix("/items").Subrouter())
+
+	err = http.ListenAndServe("localhost:8000", router)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

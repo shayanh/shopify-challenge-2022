@@ -45,6 +45,6 @@ func (rep *ItemRepository) Update(item *Item) error {
 
 func (rep *ItemRepository) All() ([]*Item, error) {
 	var items []*Item
-	err := rep.DB.Find(items).Error
+	err := rep.DB.Preload("Inventory").Find(&items).Error
 	return items, err
 }
