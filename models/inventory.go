@@ -19,6 +19,18 @@ func (rep *InventoryRepository) FirstOrCreate(inventory *Inventory) error {
 	return rep.DB.FirstOrCreate(inventory, *inventory).Error
 }
 
+func (rep *InventoryRepository) FindByID(id uint) (*Inventory, error) {
+	var inventory *Inventory
+	err := rep.DB.First(&inventory, id).Error
+	return inventory, err
+}
+
+func (rep *InventoryRepository) FindAll() ([]*Inventory, error) {
+	var inventories []*Inventory
+	err := rep.DB.Find(&inventories).Error
+	return inventories, err
+}
+
 type Item struct {
 	gorm.Model
 	Name        string
@@ -43,7 +55,7 @@ func (rep *ItemRepository) Update(item *Item) error {
 	return rep.DB.Model(item).Updates(item).Error
 }
 
-func (rep *ItemRepository) All() ([]*Item, error) {
+func (rep *ItemRepository) FindAll() ([]*Item, error) {
 	var items []*Item
 	err := rep.DB.Preload("Inventory").Find(&items).Error
 	return items, err

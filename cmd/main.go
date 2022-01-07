@@ -33,8 +33,12 @@ func main() {
 	itemRepo := &models.ItemRepository{
 		DB: db,
 	}
-	itemHandler := handlers.NewItemHandler(itemRepo)
-	itemHandler.Handle(router.PathPrefix("/items").Subrouter())
+	invRepo := &models.InventoryRepository{
+		DB: db,
+	}
+
+	itemHandler := handlers.NewItemHandler(itemRepo, invRepo)
+	itemHandler.Handle(router)
 
 	err = http.ListenAndServe("localhost:8000", router)
 	if err != nil {
