@@ -13,9 +13,12 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/shayanh/shopify-challenge-2022/models"
+	"go.uber.org/multierr"
 	"gorm.io/gorm"
 )
 
+// ItemHandler implements web handlers related to Item entity. It uses repository
+// objects to fetch data from the data store.
 type ItemHandler struct {
 	itemRepo  *models.ItemRepository
 	invRepo   *models.InventoryRepository
@@ -66,12 +69,20 @@ func getFormItem(r *http.Request) (models.Item, error) {
 	var item models.Item
 	item.Name = r.FormValue("itemName")
 	item.Description = r.FormValue("itemDescription")
+
+	var errs, err error
+	item.Quantity, err = strconv.Atoi(r.FormValue("itemQuantity"))
+	if err != nil || item.Quantity < 0 {
+		errs = errors.New("invalid quantity")
+	}
+
 	invID, err := strconv.Atoi(r.FormValue("itemInventory"))
 	if err != nil || invID < 0 {
-		return item, errors.New("invalid inventory")
+		errs = multierr.Append(errs, errors.New("invalid inventory"))
+	} else {
+		item.InventoryID = uint(invID)
 	}
-	item.InventoryID = uint(invID)
-	return item, nil
+	return item, errs
 }
 
 func (h *ItemHandler) validateItem(item *models.Item) error {
@@ -253,13 +264,13 @@ func (h *ItemHandler) exportCSV(w http.ResponseWriter, r *http.Request) {
 	}
 
 	records := [][]string{
-		{"id", "name", "inventory", "created_at", "updated_at", "description"},
+		{"id", "name", "inventory", "qty", "created_at", "updated_at", "description"},
 	}
 	for _, item := range items {
 		record := []string{
 			strconv.Itoa(int(item.ID)), item.Name, item.Inventory.Name,
-			item.CreatedAt.Format(time.RFC3339), item.UpdatedAt.Format(time.RFC3339),
-			item.Description,
+			strconv.Itoa(item.Quantity), item.CreatedAt.Format(time.RFC3339),
+			item.UpdatedAt.Format(time.RFC3339), item.Description,
 		}
 		records = append(records, record)
 	}
@@ -277,6 +288,7 @@ func (h *ItemHandler) exportCSV(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Handle registers related handlers into a given Router.
 func (h *ItemHandler) Handle(router *mux.Router) {
 	router.HandleFunc("/items", h.listItems).Methods(http.MethodGet)
 	router.HandleFunc("/items/create", h.createItem).Methods(http.MethodGet)

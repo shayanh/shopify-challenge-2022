@@ -24,11 +24,6 @@
                    value={{ .Item.Name }}>
         </div>
         <div class="mb-3">
-            <label for="itemDescription" class="form-label">Description</label>
-            <textarea class="form-control" id="itemDescription" rows="3"
-                      name="itemDescription">{{ .Item.Description }}</textarea>
-        </div>
-        <div class="mb-3">
             <label for="inventorySelect" class="form-label">Inventory</label>
             <select class="form-select" id="inventorySelect" name="itemInventory" aria-label="Inventory select">
                 <option></option>
@@ -41,6 +36,16 @@
                     {{ end }}
                 {{ end }}
             </select>
+        </div>
+        <div class="mb-3">
+            <label for="itemQuantity" class="form-label">Quantity</label>
+            <input type="number" class="form-control" id="itemQuantity" name="itemQuantity"
+                   value={{ .Item.Quantity }}>
+        </div>
+        <div class="mb-3">
+            <label for="itemDescription" class="form-label">Description</label>
+            <textarea class="form-control" id="itemDescription" rows="3"
+                      name="itemDescription">{{ .Item.Description }}</textarea>
         </div>
         {{ if .Error }}
             <div class="alert alert-danger">

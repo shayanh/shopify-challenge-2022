@@ -7,8 +7,9 @@ import (
 
 func fillInitialData(db *gorm.DB) error {
 	invs := []*models.Inventory{
-		{Name: "My Inventory"},
-		{Name: "Shopify"},
+		{Name: "School"},
+		{Name: "Software"},
+		{Name: "Phones"},
 	}
 	invRepo := models.InventoryRepository{
 		DB: db,
@@ -21,12 +22,14 @@ func fillInitialData(db *gorm.DB) error {
 	}
 
 	items := []*models.Item{
-		{Name: "Pencil", InventoryID: invs[0].ID,
+		{Name: "Pencil", InventoryID: invs[0].ID, Quantity: 8,
 			Description: "Black writing pencil for school days."},
-		{Name: "Bag", InventoryID: invs[0].ID,
-			Description: "Medium sized school bag."},
-		{Name: "Anti Virus", InventoryID: invs[1].ID,
+		{Name: "Backpack", InventoryID: invs[0].ID, Quantity: 11,
+			Description: "Medium sized school backpack."},
+		{Name: "Anti Virus", InventoryID: invs[1].ID, Quantity: 3,
 			Description: "Strong protection for your machine."},
+		{Name: "iPhone 13", InventoryID: invs[2].ID, Quantity: 9,
+			Description: "Smartphone by Apple company."},
 	}
 	itemRepo := models.ItemRepository{
 		DB: db,

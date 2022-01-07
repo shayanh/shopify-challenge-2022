@@ -2,6 +2,7 @@ package models
 
 import "gorm.io/gorm"
 
+// Inventory denotes an inventory.
 type Inventory struct {
 	gorm.Model
 	Name string `gorm:"not null;unique"`
@@ -31,10 +32,12 @@ func (rep *InventoryRepository) FindAll() ([]*Inventory, error) {
 	return inventories, err
 }
 
+// Item is an inventory item.
 type Item struct {
 	gorm.Model
 	Name        string `gorm:"not null"`
 	Description string `sql:"type:text"`
+	Quantity    int    `gorm:"default:0"`
 	InventoryID uint   `gorm:"not null"`
 	Inventory   Inventory
 }
