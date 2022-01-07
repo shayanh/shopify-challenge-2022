@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"html/template"
 	"net/http"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/shayanh/shopify-challenge-2022/models"
+	"gorm.io/gorm"
 )
 
 type ItemHandler struct {
@@ -57,12 +59,12 @@ func (h *ItemHandler) listItems(w http.ResponseWriter, r *http.Request) {
 	h.renderTemplate(w, "list.html", page)
 }
 
-func getItem(r *http.Request) (models.Item, error) {
+func getFormItem(r *http.Request) (models.Item, error) {
 	var item models.Item
 	item.Name = r.FormValue("itemName")
 	item.Description = r.FormValue("itemDescription")
 	invID, err := strconv.Atoi(r.FormValue("itemInventory"))
-	if err != nil {
+	if err != nil || invID < 0 {
 		return item, errors.New("invalid inventory")
 	}
 	item.InventoryID = uint(invID)
@@ -81,11 +83,11 @@ func (h *ItemHandler) validateItem(item *models.Item) error {
 }
 
 type editItemPage struct {
+	Title       string
+	FormAction  string
 	Inventories []*models.Inventory
+	Item        models.Item
 	Error       error
-	Name        string
-	Description string
-	InventoryID uint
 }
 
 func (h *ItemHandler) renderEditPage(w http.ResponseWriter, page editItemPage) {
@@ -98,12 +100,12 @@ func (h *ItemHandler) renderEditPage(w http.ResponseWriter, page editItemPage) {
 	h.renderTemplate(w, "edit.html", page)
 }
 
-func (h *ItemHandler) postItem(w http.ResponseWriter, r *http.Request) {
-	item, err := getItem(r)
+func (h *ItemHandler) postCreateItem(w http.ResponseWriter, r *http.Request) {
+	item, err := getFormItem(r)
 	page := editItemPage{
-		Name:        item.Name,
-		Description: item.Description,
-		InventoryID: item.InventoryID,
+		Title:      "Create Item",
+		FormAction: "/items/create",
+		Item:       item,
 	}
 	if err != nil {
 		page.Error = err
@@ -127,11 +129,124 @@ func (h *ItemHandler) postItem(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ItemHandler) createItem(w http.ResponseWriter, r *http.Request) {
-	h.renderEditPage(w, editItemPage{})
+	h.renderEditPage(w, editItemPage{
+		Title:      "Create Item",
+		FormAction: "/items/create",
+	})
+}
+
+func getParamItemID(r *http.Request) (uint, error) {
+	params := mux.Vars(r)
+	strID, ok := params["id"]
+	if !ok {
+		return 0, errors.New("missing item id")
+	}
+	intID, err := strconv.Atoi(strID)
+	if err != nil || intID < 0 {
+		return 0, errors.New("invalid item id")
+	}
+	return uint(intID), nil
+}
+
+func (h *ItemHandler) deleteItem(w http.ResponseWriter, r *http.Request) {
+	itemID, err := getParamItemID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	_, err = h.itemRepo.FindByID(itemID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			http.Error(w, "item not found", http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	err = h.itemRepo.DeleteByID(itemID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/items", http.StatusFound)
+}
+
+func (h *ItemHandler) postEditItem(w http.ResponseWriter, r *http.Request) {
+	itemID, err := getParamItemID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	_, err = h.itemRepo.FindByID(itemID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			http.Error(w, "item not found", http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	item, err := getFormItem(r)
+	page := editItemPage{
+		Title:      "Edit Item",
+		FormAction: fmt.Sprintf("/items/%d/edit", itemID),
+		Item:       item,
+	}
+	if err != nil {
+		page.Error = err
+		h.renderEditPage(w, page)
+		return
+	}
+	err = h.validateItem(&item)
+	if err != nil {
+		page.Error = err
+		h.renderEditPage(w, page)
+		return
+	}
+
+	item.ID = itemID
+	err = h.itemRepo.Update(&item)
+	if err != nil {
+		page.Error = err
+		h.renderEditPage(w, page)
+		return
+	}
+	http.Redirect(w, r, "/items", http.StatusFound)
+}
+
+func (h *ItemHandler) editItem(w http.ResponseWriter, r *http.Request) {
+	itemID, err := getParamItemID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	item, err := h.itemRepo.FindByID(itemID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			http.Error(w, "item not found", http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	h.renderEditPage(w, editItemPage{
+		Title:      "Edit Item",
+		FormAction: fmt.Sprintf("/items/%d/edit", itemID),
+		Item:       *item,
+	})
 }
 
 func (h *ItemHandler) Handle(router *mux.Router) {
-	router.HandleFunc("/items", h.listItems).Methods("GET")
-	router.HandleFunc("/items", h.postItem).Methods("POST")
-	router.HandleFunc("/items/create", h.createItem).Methods("GET")
+	router.HandleFunc("/items", h.listItems).Methods(http.MethodGet)
+	router.HandleFunc("/items/create", h.createItem).Methods(http.MethodGet)
+	router.HandleFunc("/items/create", h.postCreateItem).Methods(http.MethodPost)
+	router.HandleFunc("/items/{id:[0-9]+}/delete", h.deleteItem).Methods(http.MethodPost)
+	router.HandleFunc("/items/{id:[0-9]+}/edit", h.editItem).Methods(http.MethodGet)
+	router.HandleFunc("/items/{id:[0-9]+}/edit", h.postEditItem).Methods(http.MethodPost)
 }

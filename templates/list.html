@@ -20,7 +20,7 @@
     <table class="table">
         <thead>
         <tr>
-            <th scope="col">#</th>
+            <th scope="col">ID</th>
             <th scope="col">Name</th>
             <th scope="col">Inventory</th>
             <th scope="col">Description</th>
@@ -35,16 +35,22 @@
             <td>{{ .Inventory.Name }}</td>
             <td>{{ .Description }}</td>
             <td>
-                <button type="button" class="btn btn-primary btn-sm">Edit</button>
-                <button type="button" class="btn btn-danger btn-sm">Delete</button>
+                {{ $editURL := (printf "/items/%d/edit" .ID) }}
+                <a href="{{ $editURL }}" class="btn btn-primary btn-sm" role="button">
+                    Edit
+                </a>
+                {{ $deleteURL := (printf "/items/%d/delete" .ID) }}
+                <form style="display: inline-block" action="{{ $deleteURL }}" method="post">
+                    <input type="submit" class="btn btn-danger btn-sm" value="Delete"/>
+                </form>
             </td>
         </tr>
         {{ end }}
         </tbody>
     </table>
 
-    <a href="/items/create">
-        <button type="button" class="btn btn-primary">Add item</button>
+    <a href="/items/create" class="btn btn-primary" role="button">
+        Add item
     </a>
 </div>
 

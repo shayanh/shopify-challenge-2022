@@ -55,6 +55,16 @@ func (rep *ItemRepository) Update(item *Item) error {
 	return rep.DB.Model(item).Updates(item).Error
 }
 
+func (rep *ItemRepository) DeleteByID(id uint) error {
+	return rep.DB.Delete(&Item{}, id).Error
+}
+
+func (rep *ItemRepository) FindByID(id uint) (*Item, error) {
+	var item *Item
+	err := rep.DB.First(&item, id).Error
+	return item, err
+}
+
 func (rep *ItemRepository) FindAll() ([]*Item, error) {
 	var items []*Item
 	err := rep.DB.Preload("Inventory").Find(&items).Error
