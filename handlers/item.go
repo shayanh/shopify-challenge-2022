@@ -1,12 +1,15 @@
 package handlers
 
 import (
+	"encoding/csv"
 	"errors"
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/shayanh/shopify-challenge-2022/models"
@@ -242,6 +245,38 @@ func (h *ItemHandler) editItem(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *ItemHandler) exportCSV(w http.ResponseWriter, r *http.Request) {
+	items, err := h.itemRepo.FindAll()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	records := [][]string{
+		{"id", "name", "inventory", "created_at", "updated_at", "description"},
+	}
+	for _, item := range items {
+		record := []string{
+			strconv.Itoa(int(item.ID)), item.Name, item.Inventory.Name,
+			item.CreatedAt.Format(time.RFC3339), item.UpdatedAt.Format(time.RFC3339),
+			item.Description,
+		}
+		records = append(records, record)
+	}
+
+	csvWriter := csv.NewWriter(w)
+	for _, record := range records {
+		if err := csvWriter.Write(record); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+	csvWriter.Flush()
+	if err := csvWriter.Error(); err != nil {
+		log.Println(err)
+	}
+}
+
 func (h *ItemHandler) Handle(router *mux.Router) {
 	router.HandleFunc("/items", h.listItems).Methods(http.MethodGet)
 	router.HandleFunc("/items/create", h.createItem).Methods(http.MethodGet)
@@ -249,4 +284,5 @@ func (h *ItemHandler) Handle(router *mux.Router) {
 	router.HandleFunc("/items/{id:[0-9]+}/delete", h.deleteItem).Methods(http.MethodPost)
 	router.HandleFunc("/items/{id:[0-9]+}/edit", h.editItem).Methods(http.MethodGet)
 	router.HandleFunc("/items/{id:[0-9]+}/edit", h.postEditItem).Methods(http.MethodPost)
+	router.HandleFunc("/items/csv", h.exportCSV).Methods(http.MethodGet)
 }

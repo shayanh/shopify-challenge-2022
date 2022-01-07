@@ -15,7 +15,14 @@
 </nav>
 
 <div class="container">
-    <h1 class="mt-3 mb-2">Inventory Items</h1>
+    <div class="mt-3 mb-2">
+        <h1 style="display: inline-block">Inventory Items</h1>
+
+        <a style="display: inline-block; float: right" href="/items/csv"
+           class="btn btn-secondary align-bottom" role="button">
+            Export CSV
+        </a>
+    </div>
 
     <table class="table">
         <thead>
@@ -29,28 +36,28 @@
         </thead>
         <tbody>
         {{ range .Items }}
-        <tr>
-            <th scope="row">{{ .ID }}</th>
-            <td>{{ .Name }}</td>
-            <td>{{ .Inventory.Name }}</td>
-            <td>{{ .Description }}</td>
-            <td>
-                {{ $editURL := (printf "/items/%d/edit" .ID) }}
-                <a href="{{ $editURL }}" class="btn btn-primary btn-sm" role="button">
-                    Edit
-                </a>
-                {{ $deleteURL := (printf "/items/%d/delete" .ID) }}
-                <form style="display: inline-block" action="{{ $deleteURL }}" method="post">
-                    <input type="submit" class="btn btn-danger btn-sm" value="Delete"/>
-                </form>
-            </td>
-        </tr>
+            <tr>
+                <th scope="row">{{ .ID }}</th>
+                <td>{{ .Name }}</td>
+                <td>{{ .Inventory.Name }}</td>
+                <td>{{ .Description }}</td>
+                <td>
+                    {{ $editURL := (printf "/items/%d/edit" .ID) }}
+                    <a href="{{ $editURL }}" class="btn btn-primary btn-sm" role="button">
+                        Edit
+                    </a>
+                    {{ $deleteURL := (printf "/items/%d/delete" .ID) }}
+                    <form style="display: inline-block" action="{{ $deleteURL }}" method="post">
+                        <input type="submit" class="btn btn-danger btn-sm" value="Delete"/>
+                    </form>
+                </td>
+            </tr>
         {{ end }}
         </tbody>
     </table>
 
     <a href="/items/create" class="btn btn-primary" role="button">
-        Add item
+        Add Item
     </a>
 </div>
 

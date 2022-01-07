@@ -33,9 +33,9 @@ func (rep *InventoryRepository) FindAll() ([]*Inventory, error) {
 
 type Item struct {
 	gorm.Model
-	Name        string
+	Name        string `gorm:"not null"`
 	Description string `sql:"type:text"`
-	InventoryID uint
+	InventoryID uint   `gorm:"not null"`
 	Inventory   Inventory
 }
 
