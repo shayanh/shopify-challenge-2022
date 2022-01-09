@@ -63,7 +63,9 @@ func main() {
 	itemHandler := handlers.NewItemHandler(itemRepo, invRepo, renderer)
 	itemHandler.HandleFuncs(router)
 
-	err = http.ListenAndServe("localhost:8000", logDecorator(router))
+	listenAddr := "127.0.0.1:8000"
+	log.Printf("Start listening on %s", listenAddr)
+	err = http.ListenAndServe(listenAddr, logDecorator(router))
 	if err != nil {
 		log.Fatal(err)
 	}
