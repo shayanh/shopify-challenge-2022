@@ -7,14 +7,15 @@ have used server side rendering using [Go templates](https://pkg.go.dev/html/tem
 For data store, I used a [SQLite](https://www.sqlite.org/index.html) database 
 and [GORM](https://gorm.io/) object relational mapper on top of that.
 
-You can see a running version of application at [TODO]().
+You can see a running version of application at 
+[https://inventory.shayanh.com/items](https://inventory.shayanh.com/items).
 
 ## Install
 
 Once you have installed [Git](https://git-scm.com/downloads),
-[Go](https://go.dev/doc/install#releases), and [GNU
-Make](https://www.gnu.org/software/make/) continue with the
-following instructions.
+[Go](https://go.dev/doc/install#releases), [GNU
+Make](https://www.gnu.org/software/make/), and [GCC](https://gcc.gnu.org/)
+continue with the following instructions.
 
 ### Build
 ```shell
