@@ -6,10 +6,13 @@ import (
 	"path/filepath"
 )
 
+// Renderer renders some output related to the given name and data to the given
+// http response.
 type Renderer interface {
 	Render(w http.ResponseWriter, name string, data interface{})
 }
 
+// HTMLRenderer renders HTML output using templates.
 type HTMLRenderer struct {
 	templates *template.Template
 }

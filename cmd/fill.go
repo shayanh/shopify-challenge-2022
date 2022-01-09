@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/shayanh/shopify-challenge-2022/models"
 	"gorm.io/gorm"
 )
@@ -20,6 +22,7 @@ func fillInitialData(db *gorm.DB) error {
 			return err
 		}
 		invs[i] = updatedInv
+		log.Printf("Created inventory - ID=%d, Name=%s\n", updatedInv.ID, updatedInv.Name)
 	}
 
 	items := []models.Item{
@@ -36,10 +39,11 @@ func fillInitialData(db *gorm.DB) error {
 		DB: db,
 	}
 	for _, item := range items {
-		_, err := itemRepo.FirstOrCreate(item)
+		updatedItem, err := itemRepo.FirstOrCreate(item)
 		if err != nil {
 			return err
 		}
+		log.Printf("Created item - ID=%d, Name=%s\n", updatedItem.ID, updatedItem.Name)
 	}
 	return nil
 }
