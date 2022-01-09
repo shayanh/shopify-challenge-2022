@@ -12,22 +12,25 @@ type InventoryRepository struct {
 	DB *gorm.DB
 }
 
-func (rep *InventoryRepository) Create(inventory *Inventory) error {
-	return rep.DB.Create(inventory).Error
+func (rep *InventoryRepository) Create(inventory Inventory) (Inventory, error) {
+	err := rep.DB.Create(&inventory).Error
+	return inventory, err
 }
 
-func (rep *InventoryRepository) FirstOrCreate(inventory *Inventory) error {
-	return rep.DB.FirstOrCreate(inventory, *inventory).Error
+func (rep *InventoryRepository) FirstOrCreate(inventory Inventory) (Inventory, error) {
+	var res Inventory
+	err := rep.DB.FirstOrCreate(&res, inventory).Error
+	return res, err
 }
 
-func (rep *InventoryRepository) FindByID(id uint) (*Inventory, error) {
-	var inventory *Inventory
+func (rep *InventoryRepository) FindByID(id uint) (Inventory, error) {
+	var inventory Inventory
 	err := rep.DB.First(&inventory, id).Error
 	return inventory, err
 }
 
-func (rep *InventoryRepository) FindAll() ([]*Inventory, error) {
-	var inventories []*Inventory
+func (rep *InventoryRepository) FindAll() ([]Inventory, error) {
+	var inventories []Inventory
 	err := rep.DB.Find(&inventories).Error
 	return inventories, err
 }
@@ -46,30 +49,34 @@ type ItemRepository struct {
 	DB *gorm.DB
 }
 
-func (rep *ItemRepository) Create(item *Item) error {
-	return rep.DB.Create(item).Error
+func (rep *ItemRepository) Create(item Item) (Item, error) {
+	err := rep.DB.Create(&item).Error
+	return item, err
 }
 
-func (rep *ItemRepository) FirstOrCreate(item *Item) error {
-	return rep.DB.FirstOrCreate(item, *item).Error
+func (rep *ItemRepository) FirstOrCreate(item Item) (Item, error) {
+	var res Item
+	err := rep.DB.FirstOrCreate(&res, item).Error
+	return res, err
 }
 
-func (rep *ItemRepository) Update(item *Item) error {
-	return rep.DB.Model(item).Updates(item).Error
+func (rep *ItemRepository) Update(item Item) (Item, error) {
+	err := rep.DB.Save(&item).Error
+	return item, err
 }
 
 func (rep *ItemRepository) DeleteByID(id uint) error {
 	return rep.DB.Delete(&Item{}, id).Error
 }
 
-func (rep *ItemRepository) FindByID(id uint) (*Item, error) {
-	var item *Item
+func (rep *ItemRepository) FindByID(id uint) (Item, error) {
+	var item Item
 	err := rep.DB.First(&item, id).Error
 	return item, err
 }
 
-func (rep *ItemRepository) FindAll() ([]*Item, error) {
-	var items []*Item
-	err := rep.DB.Preload("Inventory").Find(&items).Error
+func (rep *ItemRepository) FindAll() ([]Item, error) {
+	var items []Item
+	err := rep.DB.Find(&items).Error
 	return items, err
 }

@@ -36,9 +36,10 @@ func main() {
 	invRepo := &models.InventoryRepository{
 		DB: db,
 	}
+	renderer := handlers.NewHTMLRenderer("./templates")
 
-	itemHandler := handlers.NewItemHandler(itemRepo, invRepo)
-	itemHandler.Handle(router)
+	itemHandler := handlers.NewItemHandler(itemRepo, invRepo, renderer)
+	itemHandler.HandleFuncs(router)
 
 	err = http.ListenAndServe("localhost:8000", router)
 	if err != nil {

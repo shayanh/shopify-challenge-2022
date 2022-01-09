@@ -6,7 +6,7 @@ import (
 )
 
 func fillInitialData(db *gorm.DB) error {
-	invs := []*models.Inventory{
+	invs := []models.Inventory{
 		{Name: "School"},
 		{Name: "Software"},
 		{Name: "Phones"},
@@ -14,14 +14,15 @@ func fillInitialData(db *gorm.DB) error {
 	invRepo := models.InventoryRepository{
 		DB: db,
 	}
-	for _, inv := range invs {
-		err := invRepo.FirstOrCreate(inv)
+	for i := range invs {
+		updatedInv, err := invRepo.FirstOrCreate(invs[i])
 		if err != nil {
 			return err
 		}
+		invs[i] = updatedInv
 	}
 
-	items := []*models.Item{
+	items := []models.Item{
 		{Name: "Pencil", InventoryID: invs[0].ID, Quantity: 8,
 			Description: "Black writing pencil for school days."},
 		{Name: "Backpack", InventoryID: invs[0].ID, Quantity: 11,
@@ -35,7 +36,7 @@ func fillInitialData(db *gorm.DB) error {
 		DB: db,
 	}
 	for _, item := range items {
-		err := itemRepo.FirstOrCreate(item)
+		_, err := itemRepo.FirstOrCreate(item)
 		if err != nil {
 			return err
 		}

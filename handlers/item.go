@@ -4,10 +4,8 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
-	"html/template"
 	"log"
 	"net/http"
-	"path/filepath"
 	"strconv"
 	"time"
 
@@ -20,53 +18,46 @@ import (
 // ItemHandler implements web handlers related to Item entity. It uses repository
 // objects to fetch data from the data store.
 type ItemHandler struct {
-	itemRepo  *models.ItemRepository
-	invRepo   *models.InventoryRepository
-	templates *template.Template
+	itemRepo *models.ItemRepository
+	invRepo  *models.InventoryRepository
+	renderer Renderer
 }
 
-func NewItemHandler(itemRepo *models.ItemRepository, invRepo *models.InventoryRepository) *ItemHandler {
-	templatesDir := "./templates"
-	templateNames := []string{
-		"list.html",
-		"edit.html",
-	}
-	var templateFileNames []string
-	for _, tn := range templateNames {
-		templateFileNames = append(templateFileNames, filepath.Join(templatesDir, tn))
-	}
-
+func NewItemHandler(itemRepo *models.ItemRepository, invRepo *models.InventoryRepository, renderer Renderer) *ItemHandler {
 	return &ItemHandler{
-		itemRepo:  itemRepo,
-		invRepo:   invRepo,
-		templates: template.Must(template.ParseFiles(templateFileNames...)),
+		itemRepo: itemRepo,
+		invRepo:  invRepo,
+		renderer: renderer,
 	}
 }
 
-func (h *ItemHandler) renderTemplate(w http.ResponseWriter, tmpl string, data interface{}) {
-	err := h.templates.ExecuteTemplate(w, tmpl, data)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+type listItemsPage struct {
+	Items []models.Item
 }
 
-func (h *ItemHandler) listItems(w http.ResponseWriter, r *http.Request) {
+func (h *ItemHandler) ListItems(w http.ResponseWriter, r *http.Request) {
 	items, err := h.itemRepo.FindAll()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	page := struct {
-		Items []*models.Item
-	}{
-		Items: items,
+	for i := range items {
+		items[i].Inventory, err = h.invRepo.FindByID(items[i].InventoryID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
-	h.renderTemplate(w, "list.html", page)
+
+	page := listItemsPage{Items: items}
+	h.renderer.Render(w, "list.html", page)
 }
 
 func getFormItem(r *http.Request) (models.Item, error) {
 	var item models.Item
+	_ = r.ParseForm()
+	log.Println(r.PostForm)
 	item.Name = r.FormValue("itemName")
 	item.Description = r.FormValue("itemDescription")
 
@@ -99,7 +90,7 @@ func (h *ItemHandler) validateItem(item *models.Item) error {
 type editItemPage struct {
 	Title       string
 	FormAction  string
-	Inventories []*models.Inventory
+	Inventories []models.Inventory
 	Item        models.Item
 	Error       error
 }
@@ -111,10 +102,10 @@ func (h *ItemHandler) renderEditPage(w http.ResponseWriter, page editItemPage) {
 		return
 	}
 	page.Inventories = inventories
-	h.renderTemplate(w, "edit.html", page)
+	h.renderer.Render(w, "edit.html", page)
 }
 
-func (h *ItemHandler) postCreateItem(w http.ResponseWriter, r *http.Request) {
+func (h *ItemHandler) PostCreateItem(w http.ResponseWriter, r *http.Request) {
 	item, err := getFormItem(r)
 	page := editItemPage{
 		Title:      "Create Item",
@@ -133,7 +124,7 @@ func (h *ItemHandler) postCreateItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.itemRepo.Create(&item)
+	_, err = h.itemRepo.Create(item)
 	if err != nil {
 		page.Error = err
 		h.renderEditPage(w, page)
@@ -142,7 +133,7 @@ func (h *ItemHandler) postCreateItem(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/items", http.StatusFound)
 }
 
-func (h *ItemHandler) createItem(w http.ResponseWriter, r *http.Request) {
+func (h *ItemHandler) CreateItem(w http.ResponseWriter, r *http.Request) {
 	h.renderEditPage(w, editItemPage{
 		Title:      "Create Item",
 		FormAction: "/items/create",
@@ -162,7 +153,7 @@ func getParamItemID(r *http.Request) (uint, error) {
 	return uint(intID), nil
 }
 
-func (h *ItemHandler) deleteItem(w http.ResponseWriter, r *http.Request) {
+func (h *ItemHandler) DeleteItem(w http.ResponseWriter, r *http.Request) {
 	itemID, err := getParamItemID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -187,7 +178,7 @@ func (h *ItemHandler) deleteItem(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/items", http.StatusFound)
 }
 
-func (h *ItemHandler) postEditItem(w http.ResponseWriter, r *http.Request) {
+func (h *ItemHandler) PostEditItem(w http.ResponseWriter, r *http.Request) {
 	itemID, err := getParamItemID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -223,7 +214,7 @@ func (h *ItemHandler) postEditItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	item.ID = itemID
-	err = h.itemRepo.Update(&item)
+	_, err = h.itemRepo.Update(item)
 	if err != nil {
 		page.Error = err
 		h.renderEditPage(w, page)
@@ -232,7 +223,7 @@ func (h *ItemHandler) postEditItem(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/items", http.StatusFound)
 }
 
-func (h *ItemHandler) editItem(w http.ResponseWriter, r *http.Request) {
+func (h *ItemHandler) EditItem(w http.ResponseWriter, r *http.Request) {
 	itemID, err := getParamItemID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -252,11 +243,11 @@ func (h *ItemHandler) editItem(w http.ResponseWriter, r *http.Request) {
 	h.renderEditPage(w, editItemPage{
 		Title:      "Edit Item",
 		FormAction: fmt.Sprintf("/items/%d/edit", itemID),
-		Item:       *item,
+		Item:       item,
 	})
 }
 
-func (h *ItemHandler) exportCSV(w http.ResponseWriter, r *http.Request) {
+func (h *ItemHandler) ExportCSV(w http.ResponseWriter, r *http.Request) {
 	items, err := h.itemRepo.FindAll()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -288,13 +279,13 @@ func (h *ItemHandler) exportCSV(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Handle registers related handlers into a given Router.
-func (h *ItemHandler) Handle(router *mux.Router) {
-	router.HandleFunc("/items", h.listItems).Methods(http.MethodGet)
-	router.HandleFunc("/items/create", h.createItem).Methods(http.MethodGet)
-	router.HandleFunc("/items/create", h.postCreateItem).Methods(http.MethodPost)
-	router.HandleFunc("/items/{id:[0-9]+}/delete", h.deleteItem).Methods(http.MethodPost)
-	router.HandleFunc("/items/{id:[0-9]+}/edit", h.editItem).Methods(http.MethodGet)
-	router.HandleFunc("/items/{id:[0-9]+}/edit", h.postEditItem).Methods(http.MethodPost)
-	router.HandleFunc("/items/csv", h.exportCSV).Methods(http.MethodGet)
+// HandleFuncs registers related handlers into a given Router.
+func (h *ItemHandler) HandleFuncs(router *mux.Router) {
+	router.HandleFunc("/items", h.ListItems).Methods(http.MethodGet)
+	router.HandleFunc("/items/create", h.CreateItem).Methods(http.MethodGet)
+	router.HandleFunc("/items/create", h.PostCreateItem).Methods(http.MethodPost)
+	router.HandleFunc("/items/{id:[0-9]+}/delete", h.DeleteItem).Methods(http.MethodPost)
+	router.HandleFunc("/items/{id:[0-9]+}/edit", h.EditItem).Methods(http.MethodGet)
+	router.HandleFunc("/items/{id:[0-9]+}/edit", h.PostEditItem).Methods(http.MethodPost)
+	router.HandleFunc("/items/csv", h.ExportCSV).Methods(http.MethodGet)
 }
